@@ -3,12 +3,15 @@ import litellm
 from dotenv import load_dotenv
 import logging
 import os
+# from sentence_transformers import SentenceTransformer
 
 load_dotenv()
 
 # Suppress warnings
 logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('google').setLevel(logging.ERROR)
+
+# model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
 
 # Initialize Qdrant client
 try:
@@ -41,6 +44,9 @@ def get_embedding(text):
         api_key=os.getenv("GOOGLE_API_KEY")
     )
     return response.data[0]['embedding']
+
+    # response = model.encode(sentences)
+    # return response
 
 def retrieve_documents(query, limit=4, filtro=None):
     """
