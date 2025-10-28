@@ -35,20 +35,9 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
 
-# Instala Rust toolchain (necessário para compilar pacotes Python que usam Rust extensions)
-# Installed only in the builder stage so final image stays small.
-RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-ENV PATH="/root/.cargo/bin:${PATH}"
 
 # Copia apenas os arquivos de dependência
 COPY pyproject.toml uv.lock ./
-
-# Cria e popula o virtual environment (venv)
-# O cache do uv fica isolado (via mount) e a instalação é rápida.
-# Some Python packages use PyO3/maturin (Rust); when building against newer
-# Python (e.g. 3.14) PyO3 may refuse to build unless ABI3 forward compatibility
-# is enabled. Set the env var so maturin/pyo3 will build using the stable ABI.
-ENV PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
 
 # Run uv sync to create the venv and install dependencies. The env var above
 # will be available during wheel builds.
@@ -62,7 +51,7 @@ COPY . .
 # ESTÁGIO 2: PRODUCTION (Imagem de runtime - Mínima e segura)
 # Objetivo: Copiar artefatos, criar um usuário seguro e iniciar a aplicação.
 # ----------------------------------------------------------------------
-FROM python:3.12-slim-bookworm as production
+FROM python:3.13-slim-bookworm as production
 
 # Define o diretório de trabalho DENTRO DO CONTAINER
 WORKDIR /app

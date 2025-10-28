@@ -3,6 +3,8 @@ from pydantic import BaseModel
 from typing import Optional, List, Any
 import asyncio
 
+from fastapi.middleware.cors import CORSMiddleware
+
 from flow import create_qa_flow
 
 # App metadata improves the generated OpenAPI / Swagger UI
@@ -10,6 +12,14 @@ app = FastAPI(
     title="Pocket B100 QA API",
     description="Agentic QA service that decides between direct answer, query refinement, or RAG retrieval.",
     version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this to your frontend's origin in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Create a single flow instance to reuse across requests
