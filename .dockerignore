@@ -1,0 +1,15 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+.venv
+.env
+.env.example
+.python-version
+README.md
+howtorun.md
+docs/
+.github/
+*.log
+.DS_Store
+.vscode/

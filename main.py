@@ -10,7 +10,11 @@ logging.getLogger('google').setLevel(logging.ERROR)
 # Please replace this with your own main function
 async def main():
     shared = {
+        "user_id": "default_user",
         "question": None,
+        "conversation_history": [],
+        "decision": None,
+        "refined_question": None,
         "decomposed_queries": [],
         "retrieved_contexts": [],
         "answer": None
