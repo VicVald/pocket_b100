@@ -1,7 +1,11 @@
 cp .env.example .env
 
-pip install uv
+cd frontend
 
-uv sync
+npm ci
 
-uv run main.py
+npm run build
+
+cd ..
+
+sudo docker compose up --build

@@ -38,12 +38,12 @@ class ChatResponse(BaseModel):
     retrieved_contexts: Optional[List[Any]]
 
 
-@app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"status": "ok"}
 
 
-@app.post("/chat", response_model=ChatResponse)
+@app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(req: ChatRequest, cultura: str):
     """Run the agentic QA flow for a given user and question.
 

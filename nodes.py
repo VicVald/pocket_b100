@@ -221,11 +221,14 @@ class RetrieveDocumentsNode(Node):
         # Read decomposed queries from shared
         queries = shared["decomposed_queries"]
         print(f"RetrieveDocumentsNode prep: queries {queries}")
-        return queries
+        # Return both queries and shared so exec() has access to filters like 'cultura'
+        return queries, shared
     
-    def exec(self, queries, shared):
+    def exec(self, data):
+        # data is (queries, shared)
+        queries, shared = data
         print(f"RetrieveDocumentsNode exec called with queries: {queries}")
-        # Retrieve documents for each query
+        # Retrieve documents for each query, using cultura filter from shared if present
         results = []
         for query in queries:
             res = retrieve_documents(query, 4, filtro={"cultura": shared.get("cultura", None)})

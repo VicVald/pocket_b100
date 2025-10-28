@@ -1,3 +1,4 @@
+import React from "react";
 import { useState, useRef, useEffect } from "react";
 import { ChatHeader } from "@/components/ChatHeader";
 import { ChatMessage } from "@/components/ChatMessage";
@@ -5,7 +6,6 @@ import { ChatInput } from "@/components/ChatInput";
 import { DocumentSidebar } from "@/components/DocumentSidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sprout } from "lucide-react";
-
 
 
 interface Message {
@@ -34,8 +34,15 @@ interface ApiSource {
 }
 
 interface ApiResponse {
-  response: string;
-  sources: ApiSource[];
+  // legacy `response` kept for backward compatibility
+  response?: string;
+  // newer field used by the backend
+  answer?: string;
+  decision?: string;
+  refined_question?: string | null;
+  // retrieved_contexts is an array of arrays of context objects
+  retrieved_contexts?: Array<Array<{ id?: string | null; score?: number; content?: string; file?: string }>>;
+  sources?: ApiSource[];
 }
 
 
@@ -51,6 +58,7 @@ const Index = () => {
   ]);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [cultura, setCultura] = useState<string>("citros");
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   
   // Generate consistent session and user IDs that persist for the entire chat session
@@ -92,16 +100,16 @@ const Index = () => {
     setIsLoading(true);
 
     try {
-      // Call the API
-      const response = await fetch('https://dudie2jer6kt1.cloudfront.net/chat', {
+      // Call the API (use a relative path so the browser uses the same origin
+      // as the served frontend and avoids CORS issues)
+      const response = await fetch(`/api/chat?cultura=${encodeURIComponent(cultura)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           user_id: userIdRef.current,
-          session_id: sessionIdRef.current,
-          message: content
+            question: content
         })
       });
 
@@ -113,10 +121,12 @@ const Index = () => {
 
       // Extract documents from API response using the new structure
       let extractedDocuments: Document[] = [];
-      if (data.sources && Array.isArray(data.sources)) {
-        extractedDocuments = data.sources.map((source: ApiSource, index: number) => {
+      if (data.retrieved_contexts && Array.isArray(data.retrieved_contexts)) {
+        // Flatten the array of arrays
+        const flattenedContexts = data.retrieved_contexts.flat();
+        extractedDocuments = flattenedContexts.map((context, index: number) => {
           // Determine document type based on file extension or content
-          const fileName = source.file || `Documento ${index + 1}`;
+          const fileName = context.file || `Documento ${index + 1}`;
           let docType: "research" | "guide" | "article" | "manual" = "article";
           
           if (fileName.includes("tabela") || fileName.includes("table")) {
@@ -128,11 +138,11 @@ const Index = () => {
           }
 
           return {
-            id: source.id || `doc_${index}`,
+            id: context.id || `doc_${index}`,
             title: fileName,
-            excerpt: source.content || "Conteúdo não disponível",
+            excerpt: context.content || "Conteúdo não disponível",
             source: fileName,
-            relevance: Math.round((source.score || 0) * 100),
+            relevance: Math.round((context.score || 0) * 100),
             date: new Date().getFullYear().toString(), // Default to current year since no date info
             type: docType
           };
@@ -144,7 +154,7 @@ const Index = () => {
         const filtered = prev.filter((m) => !m.isLoading);
         const assistantMessage: Message = {
           id: Date.now().toString() + "-response",
-          content: data.response || "Desculpe, não consegui processar sua mensagem.",
+          content: data.answer || data.response || "Desculpe, não consegui processar sua mensagem.",
           role: "assistant",
           timestamp: new Date(),
         };
@@ -183,6 +193,19 @@ const Index = () => {
     <div className="flex h-screen bg-gradient-earth">      
       <div className="flex-1 flex flex-col mr-80">
         <ChatHeader />
+        {/* Cultura selector: choose agricultural crop context for the assistant */}
+        <div className="px-6 py-2">
+          <label htmlFor="cultura-select" className="block text-sm font-medium text-muted-foreground mb-1">Cultura</label>
+          <select
+            id="cultura-select"
+            value={cultura}
+            onChange={(e) => setCultura(e.target.value)}
+            className="border border-border rounded px-3 py-2 text-sm bg-card"
+          >
+            <option value="citros">Citros</option>
+            <option value="cana-de-acucar">Cana-de-açúcar</option>
+          </select>
+        </div>
         
         <ScrollArea ref={scrollAreaRef} className="flex-1">
           <div className="pb-4">
@@ -223,9 +246,10 @@ const Index = () => {
                 </div>
               </div>
             )}
-            
             {messages.map((message) => (
-              <ChatMessage key={message.id} message={message} />
+              <div key={message.id}>
+                <ChatMessage message={message} />
+              </div>
             ))}
           </div>
         </ScrollArea>

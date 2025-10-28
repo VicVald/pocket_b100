@@ -1,0 +1,47 @@
+services:
+
+  # ----------------------------------------------------
+  # 3. APLICAÇÃO DJANGO (Web/Gunicorn)
+  # ----------------------------------------------------
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    image: pocket_b100:latest
+    container_name: pocket_b100_web
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - frontend_build:/frontend_build # mount named volume where nginx will serve
+    command: ["/bin/sh", "-c", "if [ ! -f /frontend_build/index.html ]; then mkdir -p /frontend_build && cp -r /app/frontend/dist/* /frontend_build/; fi && uv run uvicorn api:app --host 0.0.0.0 --port 8000"]
+    expose:
+      - "8000"
+    healthcheck:
+      # Use python stdlib for healthcheck (curl may not be installed in the image)
+      test: ["CMD-SHELL", "python - <<'PY'\nimport http.client,sys\ntry:\n    c=http.client.HTTPConnection('127.0.0.1',8000,timeout=2)\n    c.request('GET','/api/health')\n    r=c.getresponse()\n    sys.exit(0) if r.status==200 else sys.exit(1)\nexcept Exception:\n    sys.exit(1)\nPY"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+  # ----------------------------------------------------
+  # 6. NGINX (Servidor Web)
+  # ----------------------------------------------------
+  nginx:
+    image: nginx:alpine
+    container_name: nginx_proxy
+    # Mapeia a porta 80/443 do host para o Nginx
+    ports:
+      - "80:80"
+      - "443:443" # Para HTTPS
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - web # Nginx depende do Gunicorn para encaminhar as requisições
+    restart: always
+
+# Define volumes para persistência de dados
+volumes:
+  frontend_build: # Para build do React/frontend
