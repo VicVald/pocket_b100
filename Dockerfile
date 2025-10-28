@@ -45,6 +45,13 @@ COPY pyproject.toml uv.lock ./
 
 # Cria e popula o virtual environment (venv)
 # O cache do uv fica isolado (via mount) e a instalação é rápida.
+# Some Python packages use PyO3/maturin (Rust); when building against newer
+# Python (e.g. 3.14) PyO3 may refuse to build unless ABI3 forward compatibility
+# is enabled. Set the env var so maturin/pyo3 will build using the stable ABI.
+ENV PYO3_USE_ABI3_FORWARD_COMPATIBILITY=1
+
+# Run uv sync to create the venv and install dependencies. The env var above
+# will be available during wheel builds.
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync
 
