@@ -13,3 +13,9 @@ docs/
 *.log
 .DS_Store
 .vscode/
+
+node_modules
+frontend/node_modules
+.git
+*.pyc
+__pycache__
