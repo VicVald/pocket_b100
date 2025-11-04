@@ -80,6 +80,9 @@ COPY --from=frontend-builder /frontend/dist /app/frontend/dist
 #    --create-home: Permite que o usuário tenha um local de trabalho, resolvendo o erro 13.
 RUN useradd --create-home --uid 1000 appuser
 
+# Garante que /frontend_build exista e seja de appuser (evita Permission denied)
+RUN mkdir -p /frontend_build && chown -R appuser:appuser /frontend_build
+
 #    Transfere a propriedade de /app e todos os seus conteúdos (incluindo o venv)
 #    para o appuser, dando a ele as permissões necessárias.
 RUN chown -R appuser:appuser /app
