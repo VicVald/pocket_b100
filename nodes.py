@@ -88,6 +88,8 @@ class DecisionNode(Node):
     def post(self, shared, prep_res, exec_res):
         # Store decision in shared
         shared["decision"] = exec_res
+        # Initialize refinement count if not present
+        shared["refinement_count"] = 0
         return exec_res  # return the action
 
 class QueryRefinementNode(Node):
@@ -121,6 +123,11 @@ class QueryRefinementNode(Node):
         # Store refined question
         shared["refined_question"] = exec_res
         shared["question"] = exec_res  # update the question
+        # Increment refinement count
+        shared["refinement_count"] += 1
+        # Limit to 3 loops, then force RAG
+        if shared["refinement_count"] >= 3:
+            return "rag"
         return "decide"  # loop back to decision
 
 class DirectAnswerNode(Node):

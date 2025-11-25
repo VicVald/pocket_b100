@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List, Any
 import asyncio
@@ -51,24 +51,28 @@ async def chat_endpoint(req: ChatRequest, cultura: str):
     and run the flow. The flow's `InputNode` uses the pre-supplied question so it
     won't prompt for input.
     """
-    shared = {
-        "user_id": req.user_id,
-        "question": req.question,
-        "cultura": cultura,
-        "conversation_history": [],
-        "decision": None,
-        "refined_question": None,
-        "decomposed_queries": [],
-        "retrieved_contexts": [],
-        "answer": None,
-    }
+    try:
+        shared = {
+            "user_id": req.user_id,
+            "question": req.question,
+            "cultura": cultura,
+            "conversation_history": [],
+            "decision": None,
+            "refined_question": None,
+            "decomposed_queries": [],
+            "retrieved_contexts": [],
+            "answer": None,
+        }
 
-    # run the async flow
-    await flow.run_async(shared)
+        # run the async flow
+        await flow.run_async(shared)
 
-    return ChatResponse(
-        answer=shared.get("answer"),
-        decision=shared.get("decision"),
-        refined_question=shared.get("refined_question"),
-        retrieved_contexts=shared.get("retrieved_contexts"),
-    )
+        return ChatResponse(
+            answer=shared.get("answer"),
+            decision=shared.get("decision"),
+            refined_question=shared.get("refined_question"),
+            retrieved_contexts=shared.get("retrieved_contexts"),
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Internal server error: {str(e)}")
