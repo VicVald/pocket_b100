@@ -1,3 +1,6 @@
+import warnings
+warnings.filterwarnings("ignore", message="Api key is used with an insecure connection")
+
 from qdrant_client import QdrantClient
 import litellm
 from dotenv import load_dotenv
@@ -12,6 +15,8 @@ logging.getLogger('absl').setLevel(logging.ERROR)
 logging.getLogger('google').setLevel(logging.ERROR)
 
 # model = SentenceTransformer("Qwen/Qwen3-Embedding-0.6B")
+
+import requests
 
 # Initialize Qdrant client
 try:
@@ -38,15 +43,20 @@ except Exception as e:
     qdrant_client = None
 
 def get_embedding(text):
-    response = litellm.embedding(
-        model="gemini/gemini-embedding-001",
-        input=[text],
-        api_key=os.getenv("GOOGLE_API_KEY")
-    )
-    return response.data[0]['embedding']
 
-    # response = model.encode(sentences)
-    # return response
+    # NOTA: Use 'embbeding_service' como hostname e a porta interna '8000'
+    EMBEDDING_API_URL = "http://embbeding_service:8000/embed?sentence="
+
+    try:
+        response = requests.post(EMBEDDING_API_URL+text)
+        response.raise_for_status() # Lança exceção para códigos de erro HTTP
+        embeddings = response.json()
+        print("Embeddings recebidos com sucesso.")
+        return embeddings.get("embeddings")
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao conectar com o serviço de embeddings: {e}")
+        return []
 
 def retrieve_documents(query, limit=4, filtro=None):
     """
